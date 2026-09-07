@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mentor_money_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mentor_money
+      POSTGRES_USER: mentor
+      POSTGRES_PASSWORD: mentor
+    ports:
+      - "5432:5432"
+    volumes:
+      - mentor_money_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mentor -d mentor_money"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mentor_money_postgres:

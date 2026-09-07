@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ClassStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum ClassSetupStatus {
+  DRAFT
+  COMPLETE
+  NEEDS_SCHEDULE
+  NEEDS_TUITION
+}
+
+enum StudentStatus {
+  ACTIVE
+  PAUSED
+  LEFT
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum LessonStatus {
+  PLANNED
+  COMPLETED
+  STUDENT_ABSENT
+  TEACHER_ABSENT
+  CANCELLED
+  MAKEUP
+  TRIAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+}
+
+enum TuitionType {
+  PER_SESSION
+  FIXED_MONTHLY
+  ACTUAL_SESSIONS
+  GROUP_BY_STUDENT
+  PREPAID_PACKAGE
+  MANUAL
+}
+
+enum ReportStatus {
+  DRAFT
+  FINALIZED
+  SENT
+  VIEWED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  NOT_SENT
+  SENT
+  VIEWED
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+model Teacher {
+  id                    String          @id @default(cuid())
+  clerkUserId           String          @unique
+  name                  String
+  email                 String
+  avatarUrl             String?
+  phone                 String?
+  bankName              String?
+  bankAccountName       String?
+  bankAccountNumber     String?
+  paymentQrUrl          String?
+  defaultPaymentNote    String?
+  defaultReportGreeting String?
+  defaultReportFooter   String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  classes               Class[]
+  classStudents         ClassStudent[]
+  parents               ParentContact[]
+  reports               Report[]
+}
+
+model Class {
+  id               String           @id @default(cuid())
+  teacherId        String
+  name             String
+  subject          String
+  description      String?
+  status           ClassStatus      @default(ACTIVE)
+  setupStatus      ClassSetupStatus @default(DRAFT)
+  currentSetupStep String?
+  internalNote     String?
+  startDate        DateTime?
+  endDate          DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  teacher          Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  students         ClassStudent[]
+  schedules        ClassSchedule[]
+  lessons          LessonSession[]
+  tuition          TuitionConfig?
+  reports          Report[]
+
+  @@index([teacherId, status])
+}
+
+model ClassStudent {
+  id                 String          @id @default(cuid())
+  teacherId          String
+  classId            String
+  fullName           String
+  nickname           String?
+  birthDate          DateTime?
+  schoolLevel        String?
+  note               String?
+  joinedAt           DateTime        @default(now())
+  leftAt             DateTime?
+  customFeePerLesson Int?
+  customMonthlyFee   Int?
+  status             StudentStatus   @default(ACTIVE)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  teacher            Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class              Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  parents            ParentContact[]
+  attendance         Attendance[]
+  reports            Report[]
+
+  @@index([teacherId, status])
+  @@index([classId, status])
+}
+
+model ParentContact {
+  id               String       @id @default(cuid())
+  teacherId        String
+  classStudentId   String
+  fullName         String
+  phone            String?
+  email            String?
+  relationship     String?
+  preferredChannel String?
+  paymentNote      String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  teacher          Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classStudent     ClassStudent @relation(fields: [classStudentId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@index([classStudentId])
+}
+
+model ClassSchedule {
+  id            String          @id @default(cuid())
+  classId       String
+  dayOfWeek     Int
+  startTime     String
+  endTime       String
+  location      String?
+  learningMode  String?
+  effectiveFrom DateTime        @default(now())
+  effectiveTo   DateTime?
+  status        ScheduleStatus  @default(ACTIVE)
+  class         Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  lessons       LessonSession[]
+
+  @@index([classId, status])
+}
+
+model LessonSession {
+  id             String         @id @default(cuid())
+  classId        String
+  scheduleId     String?
+  lessonDate     DateTime
+  startTime      String
+  endTime        String
+  status         LessonStatus   @default(PLANNED)
+  taughtContent  String?
+  homework       String?
+  internalNote   String?
+  parentNote     String?
+  isBillable     Boolean        @default(false)
+  billableAmount Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  class          Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  schedule       ClassSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  attendance     Attendance[]
+
+  @@unique([classId, lessonDate, startTime, endTime])
+  @@index([classId, lessonDate])
+}
+
+model Attendance {
+  id             String           @id @default(cuid())
+  lessonId       String
+  classStudentId String
+  status         AttendanceStatus @default(PRESENT)
+  note           String?
+  lesson         LessonSession    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  classStudent   ClassStudent     @relation(fields: [classStudentId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, classStudentId])
+}
+
+model TuitionConfig {
+  id              String      @id @default(cuid())
+  classId         String      @unique
+  type            TuitionType @default(ACTUAL_SESSIONS)
+  feePerLesson    Int?
+  fixedMonthlyFee Int?
+  packageLessons  Int?
+  packagePrice    Int?
+  effectiveFrom   DateTime    @default(now())
+  effectiveTo     DateTime?
+  extraConfig     Json?
+  class           Class       @relation(fields: [classId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id              String        @id @default(cuid())
+  teacherId       String
+  classId         String
+  classStudentId  String?
+  reportMonth     String
+  status          ReportStatus  @default(DRAFT)
+  paymentStatus   PaymentStatus @default(NOT_SENT)
+  totalLessons    Int           @default(0)
+  billableLessons Int           @default(0)
+  subtotalAmount  Int           @default(0)
+  discountAmount  Int           @default(0)
+  surchargeAmount Int           @default(0)
+  totalAmount     Int           @default(0)
+  paidAmount      Int           @default(0)
+  remainingAmount Int           @default(0)
+  shareToken      String        @unique
+  isShareEnabled  Boolean       @default(true)
+  shareExpiresAt  DateTime?
+  finalizedAt     DateTime?
+  viewedAt        DateTime?
+  paymentDueDate  DateTime?
+  teacherNote     String?
+  paymentNote     String?
+  snapshot        Json
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  teacher         Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class           Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classStudent    ClassStudent? @relation(fields: [classStudentId], references: [id], onDelete: SetNull)
+  payments        Payment[]
+
+  @@index([teacherId, reportMonth])
+  @@index([classId, reportMonth])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  reportId  String
+  amount    Int
+  paidAt    DateTime @default(now())
+  method    String?
+  note      String?
+  createdAt DateTime @default(now())
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+}
