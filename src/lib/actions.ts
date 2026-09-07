@@ -325,12 +325,27 @@ export async function updateTuitionConfig(formData: FormData) {
   const ownedClass = await prisma.class.findFirst({ where: { id: classId, teacherId: teacher.id } });
   if (!ownedClass) throw new Error("Không tìm thấy lớp.");
 
-  const type = (text(formData, "tuitionType") ?? "ACTUAL_SESSIONS") as never;
+  const type = text(formData, "tuitionType") as string;
+
+  // Validation theo từng loại
+  if (type === "THEO_BUOI") {
+    const feePerLesson = intValue(formData, "feePerLesson");
+    if (!feePerLesson || feePerLesson <= 0) {
+      throw new Error("Vui lòng nhập số tiền mỗi buổi học.");
+    }
+  } else if (type === "THEO_THANG") {
+    const fixedMonthlyFee = intValue(formData, "fixedMonthlyFee");
+    if (!fixedMonthlyFee || fixedMonthlyFee <= 0) {
+      throw new Error("Vui lòng nhập số tiền cố định hàng tháng.");
+    }
+  } else if (type === "THEO_GOI") {
+    // Coming soon - không cần validate
+  }
 
   const tuition = await prisma.tuitionConfig.upsert({
     where: { classId },
     update: {
-      type,
+      type: type as never,
       feePerLesson: intValue(formData, "feePerLesson"),
       fixedMonthlyFee: intValue(formData, "fixedMonthlyFee"),
       packageLessons: intValue(formData, "packageLessons"),
@@ -338,7 +353,7 @@ export async function updateTuitionConfig(formData: FormData) {
     },
     create: {
       classId,
-      type,
+      type: type as never,
       feePerLesson: intValue(formData, "feePerLesson"),
       fixedMonthlyFee: intValue(formData, "fixedMonthlyFee"),
       packageLessons: intValue(formData, "packageLessons"),
@@ -346,30 +361,37 @@ export async function updateTuitionConfig(formData: FormData) {
     }
   });
 
-  const defaultBill = defaultBillableAmount("COMPLETED", tuition);
-
-  // Update lessons based on user choice
-  if (updatePastLessons) {
-    // Update all completed lessons with new tuition
+  // THEO_BUOI: Cập nhật các buổi học cũ nếu chọn
+  if (type === "THEO_BUOI" && updatePastLessons) {
     await prisma.lessonSession.updateMany({
       where: {
         classId,
-        status: { in: ["COMPLETED", "TRIAL", "MAKEUP"] }
+        status: { in: ["COMPLETED", "TRIAL", "MAKEUP"] },
+        customFee: null // Chỉ cập nhật những buổi chưa có customFee
       },
-      data: { isBillable: defaultBill.isBillable, billableAmount: defaultBill.amount }
+      data: {
+        isBillable: true,
+        billableAmount: tuition.feePerLesson ?? 0
+      }
     });
-  } else {
-    // Only update lessons that have not been billed yet (isBillable: false, billableAmount: 0)
+  } else if (type === "THEO_BUOI") {
+    // Chỉ cập nhật những buổi chưa được tính phí
     await prisma.lessonSession.updateMany({
       where: {
         classId,
         status: { in: ["COMPLETED", "TRIAL", "MAKEUP"] },
         isBillable: false,
-        billableAmount: 0
+        billableAmount: 0,
+        customFee: null
       },
-      data: { isBillable: defaultBill.isBillable, billableAmount: defaultBill.amount }
+      data: {
+        isBillable: true,
+        billableAmount: tuition.feePerLesson ?? 0
+      }
     });
   }
+  // THEO_THANG: Không cập nhật tự động từng buổi - tiền cố định theo tháng
+  // THEO_GOI: Coming soon
 
   await prisma.class.update({
     where: { id: classId },
@@ -690,6 +712,36 @@ export async function deleteLesson(lessonId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/lessons");
   revalidatePath("/schedule");
+  revalidatePath(`/classes/${lesson.classId}`);
+}
+
+export async function updateLessonCustomFee(formData: FormData) {
+  const teacher = await requireTeacher();
+  const lessonId = text(formData, "lessonId");
+  const customFeeValue = intValue(formData, "customFee");
+
+  if (!lessonId) throw new Error("Thiếu buổi học.");
+
+  const lesson = await prisma.lessonSession.findFirst({
+    where: { id: lessonId, class: { teacherId: teacher.id } },
+    include: { class: { include: { tuition: true } } }
+  });
+  if (!lesson) throw new Error("Không tìm thấy buổi học.");
+
+  // Chỉ áp dụng cho THEO_BUOI
+  if (lesson.class.tuition?.type !== "THEO_BUOI") {
+    throw new Error("Chỉ có thể tùy chỉnh giá buổi học khi chế độ tính tiền là THEO_BUOI.");
+  }
+
+  await prisma.lessonSession.update({
+    where: { id: lessonId },
+    data: {
+      customFee: customFeeValue ?? null
+    }
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/lessons");
   revalidatePath(`/classes/${lesson.classId}`);
 }
 

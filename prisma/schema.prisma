@@ -49,12 +49,9 @@ enum AttendanceStatus {
 }
 
 enum TuitionType {
-  PER_SESSION
-  FIXED_MONTHLY
-  ACTUAL_SESSIONS
-  GROUP_BY_STUDENT
-  PREPAID_PACKAGE
-  MANUAL
+  THEO_BUOI    // Tính tiền theo buổi - giáo viên tùy chỉnh từng buổi
+  THEO_THANG   // Tiền cố định tháng - thêm buổi không đổi tiền
+  THEO_GOI     // Coming soon - theo gói buổi
 }
 
 enum ReportStatus {
@@ -197,6 +194,7 @@ model LessonSession {
   parentNote     String?
   isBillable     Boolean        @default(false)
   billableAmount Int            @default(0)
+  customFee      Int?           // Override giá buổi (THEO_BUOI only)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   class          Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -222,11 +220,11 @@ model Attendance {
 model TuitionConfig {
   id              String      @id @default(cuid())
   classId         String      @unique
-  type            TuitionType @default(ACTUAL_SESSIONS)
-  feePerLesson    Int?
-  fixedMonthlyFee Int?
-  packageLessons  Int?
-  packagePrice    Int?
+  type            TuitionType @default(THEO_BUOI) // Mặc định: tính theo buổi
+  feePerLesson    Int?        // Áp dụng cho THEO_BUOI: giá mặc định mỗi buổi
+  fixedMonthlyFee Int?        // Áp dụng cho THEO_THANG: tiền cố định tháng
+  packageLessons  Int?        // Áp dụng cho THEO_GOI: số buổi trong gói
+  packagePrice    Int?        // Áp dụng cho THEO_GOI: giá gói
   effectiveFrom   DateTime    @default(now())
   effectiveTo     DateTime?
   extraConfig     Json?

@@ -25,26 +25,22 @@ type Tuition = {
 
 export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: { classId: string; tuition: Tuition; completedLessonsCount: number }) {
   const router = useRouter();
-  const [type, setType] = useState(tuition?.type ?? "ACTUAL_SESSIONS");
+  const [type, setType] = useState(tuition?.type ?? "THEO_BUOI");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<{ formData: FormData; newAmount: number } | null>(null);
   const [confirmChoice, setConfirmChoice] = useState<"all" | "future" | null>(null);
   const [isConfirmPending, startConfirmTransition] = useTransition();
-  const perLesson = type === "ACTUAL_SESSIONS" || type === "PER_SESSION" || type === "GROUP_BY_STUDENT";
-  const monthly = type === "FIXED_MONTHLY";
-  const packageMode = type === "PREPAID_PACKAGE";
+
+  const isTheoBuoi = type === "THEO_BUOI";
+  const isTheoThang = type === "THEO_THANG";
+  const isTheoGoi = type === "THEO_GOI";
 
   // Calculate new amount for display in modal
   const calculateNewAmount = (formData: FormData): number => {
     const feePerLesson = intValue(formData, "feePerLesson");
     const fixedMonthlyFee = intValue(formData, "fixedMonthlyFee");
-    const packageLessons = intValue(formData, "packageLessons");
-    const packagePrice = intValue(formData, "packagePrice");
 
-    if (type === "FIXED_MONTHLY") return fixedMonthlyFee ?? 0;
-    if (type === "PREPAID_PACKAGE" && packageLessons && packageLessons > 0) {
-      return Math.round((packagePrice ?? 0) / packageLessons);
-    }
+    if (isTheoThang) return fixedMonthlyFee ?? 0;
     return feePerLesson ?? 0;
   };
 
@@ -98,24 +94,63 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
         <h2 className="text-lg font-black">Cập nhật học phí</h2>
         <input name="classId" type="hidden" value={classId} />
         <div className="field">
-          <label>Cách tính</label>
+          <label>Chế độ tính tiền</label>
           <select name="tuitionType" value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="ACTUAL_SESSIONS">Giá chung cho cả lớp / buổi</option>
-            <option value="FIXED_MONTHLY">Cố định mỗi tháng</option>
-            <option value="PREPAID_PACKAGE">Gói buổi trả trước</option>
-            <option value="GROUP_BY_STUDENT">Giá cho mỗi học sinh / buổi</option>
-            <option value="MANUAL">Nhập tổng tiền khi chốt</option>
+            <option value="THEO_BUOI">📅 Theo buổi - Mỗi buổi dạy tính tiền buổi đó</option>
+            <option value="THEO_THANG">📆 Theo tháng - Tiền cố định mỗi tháng</option>
+            <option value="THEO_GOI">📦 Theo gói - Coming soon</option>
           </select>
         </div>
-        {perLesson ? <div className="field"><label>Phí mỗi buổi</label><input name="feePerLesson" inputMode="numeric" defaultValue={tuition?.feePerLesson ?? ""} required /></div> : null}
-        {monthly ? <div className="field"><label>Phí mỗi tháng</label><input name="fixedMonthlyFee" inputMode="numeric" defaultValue={tuition?.fixedMonthlyFee ?? ""} required /></div> : null}
-        {packageMode ? (
-          <div className="grid-2">
-            <div className="field"><label>Số buổi trong gói</label><input name="packageLessons" inputMode="numeric" defaultValue={tuition?.packageLessons ?? ""} required /></div>
-            <div className="field"><label>Giá gói</label><input name="packagePrice" inputMode="numeric" defaultValue={tuition?.packagePrice ?? ""} required /></div>
+
+        {/* THEO_BUOI: Tính tiền theo buổi */}
+        {isTheoBuoi && (
+          <div className="field">
+            <label>Phí mỗi buổi học (VND)</label>
+            <input
+              name="feePerLesson"
+              inputMode="numeric"
+              defaultValue={tuition?.feePerLesson ?? ""}
+              placeholder="VD: 200000"
+              required
+            />
+            <p className="text-sm text-[var(--muted)]">
+              Giáo viên có thể tùy chỉnh số tiền cho từng buổi học cụ thể.
+            </p>
           </div>
-        ) : null}
-        {type === "GROUP_BY_STUDENT" ? <p className="text-sm text-[var(--muted)]">Mức phí trên áp dụng giống nhau cho từng học sinh. Báo cáo cả lớp sẽ nhân với số học sinh đang học.</p> : null}
+        )}
+
+        {/* THEO_THANG: Tiền cố định theo tháng */}
+        {isTheoThang && (
+          <>
+            <div className="field">
+              <label>Phí cố định mỗi tháng (VND)</label>
+              <input
+                name="fixedMonthlyFee"
+                inputMode="numeric"
+                defaultValue={tuition?.fixedMonthlyFee ?? ""}
+                placeholder="VD: 2000000"
+                required
+              />
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <p className="font-medium">💡 Cách tính này hoạt động như thế nào:</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Số tiền sẽ <strong>cố định mỗi tháng</strong>, không phụ thuộc vào số buổi</li>
+                <li>Bạn có thể thêm buổi học bổ sung trong tháng</li>
+                <li>Tiền vẫn giữ nguyên - không tăng khi thêm buổi</li>
+              </ul>
+            </div>
+          </>
+        )}
+
+        {/* THEO_GOI: Coming soon */}
+        {isTheoGoi && (
+          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center text-gray-500">
+            <p className="text-lg mb-1">🚧 Tính năng đang được phát triển</p>
+            <p className="text-sm">Chế độ "Theo gói" sẽ cho phép bạn bán các gói buổi học cho phụ huynh.</p>
+          </div>
+        )}
+
         <TuitionSubmitButton />
       </form>
 
@@ -125,7 +160,9 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
           <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-2">Cập nhật học phí</h3>
             <p className="mb-4 text-sm text-[var(--muted)]">
-              Bạn đã có <strong>{completedLessonsCount} buổi</strong> đã hoàn thành. Học phí mới: <strong>{formatMoney(pendingData.newAmount)}/buổi</strong>
+              Bạn đã có <strong>{completedLessonsCount} buổi</strong> đã hoàn thành.
+              Học phí mới: <strong>{formatMoney(pendingData.newAmount)}</strong>
+              {isTheoBuoi && "/buổi"}
             </p>
             <p className="mb-4 text-sm">Bạn có muốn cập nhật lại tiền cho các buổi đã dạy không?</p>
             <div className="flex gap-2">

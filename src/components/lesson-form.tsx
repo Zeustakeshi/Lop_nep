@@ -19,8 +19,13 @@ interface Lesson {
   parentNote: string | null;
   isBillable: boolean;
   billableAmount: number;
+  customFee: number | null;
   class: {
     name: string;
+    tuition: {
+      type: string;
+      feePerLesson: number | null;
+    } | null;
   };
 }
 
@@ -32,6 +37,10 @@ export function LessonForm({ lesson }: LessonFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showBillableWarning, setShowBillableWarning] = useState(false);
+
+  // THEO_BUOI: cho phép tùy chỉnh giá từng buổi
+  const canCustomizeFee = lesson.class.tuition?.type === "THEO_BUOI";
+  const displayFee = lesson.customFee ?? lesson.billableAmount ?? lesson.class.tuition?.feePerLesson ?? 0;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -114,14 +123,41 @@ export function LessonForm({ lesson }: LessonFormProps) {
             </select>
           </div>
           <div className="field">
-            <label>Số tiền hiện tại: {formatMoney(lesson.billableAmount)}</label>
-            <input
-              name="billableAmount"
-              inputMode="numeric"
-              defaultValue={lesson.billableAmount || ""}
-            />
+            <label>Số tiền: {formatMoney(displayFee)}</label>
+            {canCustomizeFee ? (
+              <>
+                <input
+                  name="billableAmount"
+                  inputMode="numeric"
+                  defaultValue={displayFee || ""}
+                  placeholder="VD: 200000"
+                />
+                {lesson.customFee !== null && lesson.customFee !== undefined && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    ✏️ Đã tùy chỉnh (mặc định: {formatMoney(lesson.class.tuition?.feePerLesson ?? 0)})
+                  </p>
+                )}
+              </>
+            ) : (
+              <input
+                name="billableAmount"
+                inputMode="numeric"
+                defaultValue={displayFee || ""}
+                disabled={!canCustomizeFee}
+                title={!canCustomizeFee ? "Chỉ có thể tùy chỉnh khi chế độ tính tiền là THEO_BUOI" : ""}
+              />
+            )}
           </div>
         </div>
+
+        {/* THEO_THANG: Hiển thị thông báo không tính theo buổi */}
+        {lesson.class.tuition?.type === "THEO_THANG" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+            <p>💡 Chế độ <strong>THEO_THANG</strong>: Tiền cố định theo tháng, không tính theo từng buổi.</p>
+            <p className="text-xs mt-1">Nghỉ buổi vẫn tính đủ tiền tháng.</p>
+          </div>
+        )}
+
         <details className="optional-panel">
           <summary>Nội dung bài học và ghi chú</summary>
           <div className="mt-3 grid-2">
@@ -159,7 +195,7 @@ export function LessonForm({ lesson }: LessonFormProps) {
             <p>Thông tin:</p>
             <ul>
               <li>Buổi học sẽ <strong>không xuất hiện</strong> trong báo cáo học phí</li>
-              <li>Số tiền <strong>{formatMoney(lesson.billableAmount)}</strong> sẽ không được tính</li>
+              <li>Số tiền <strong>{formatMoney(displayFee)}</strong> sẽ không được tính</li>
               <li>Phụ huynh sẽ không thấy buổi học này trong phiếu báo phí</li>
             </ul>
             <p>Bạn có chắc chắn muốn tiếp tục?</p>
