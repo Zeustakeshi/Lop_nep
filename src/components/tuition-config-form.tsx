@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { SubmitButton } from "@/components/submit-button";
 import { updateTuitionConfig } from "@/lib/actions";
 import { formatMoney } from "@/lib/format";
 
 function TuitionSubmitButton() {
-  const { pending } = useFormStatus();
   return (
-    <button className="btn btn-primary w-fit" type="submit" disabled={pending}>
-      {pending ? "Đang lưu..." : "Lưu học phí"}
-    </button>
+    <SubmitButton className="w-fit" pendingText="Đang lưu...">
+      Lưu học phí
+    </SubmitButton>
   );
 }
 
@@ -24,9 +24,12 @@ type Tuition = {
 } | null;
 
 export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: { classId: string; tuition: Tuition; completedLessonsCount: number }) {
+  const router = useRouter();
   const [type, setType] = useState(tuition?.type ?? "ACTUAL_SESSIONS");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<{ formData: FormData; newAmount: number } | null>(null);
+  const [confirmChoice, setConfirmChoice] = useState<"all" | "future" | null>(null);
+  const [isConfirmPending, startConfirmTransition] = useTransition();
   const perLesson = type === "ACTUAL_SESSIONS" || type === "PER_SESSION" || type === "GROUP_BY_STUDENT";
   const monthly = type === "FIXED_MONTHLY";
   const packageMode = type === "PREPAID_PACKAGE";
@@ -68,17 +71,25 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
     // Otherwise let the form submit normally
   };
 
-  const handleConfirmUpdate = async (updatePast: boolean) => {
-    if (!pendingData) return;
+  const handleConfirmUpdate = (updatePast: boolean) => {
+    if (!pendingData || isConfirmPending) return;
 
-    const { formData, newAmount } = pendingData;
+    const { formData } = pendingData;
     formData.set("updatePastLessons", updatePast ? "true" : "false");
+    setConfirmChoice(updatePast ? "all" : "future");
 
-    setShowConfirmModal(false);
-    setPendingData(null);
-
-    // Submit the form programmatically
-    await updateTuitionConfig(formData);
+    startConfirmTransition(async () => {
+      try {
+        await updateTuitionConfig(formData);
+        setShowConfirmModal(false);
+        setPendingData(null);
+        router.refresh();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Không thể cập nhật học phí.");
+      } finally {
+        setConfirmChoice(null);
+      }
+    });
   };
 
   return (
@@ -110,7 +121,7 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
 
       {/* Confirmation Modal */}
       {showConfirmModal && pendingData && (
-        <div className="modal-backdrop" onClick={() => setShowConfirmModal(false)}>
+        <div className="modal-backdrop" onClick={() => !isConfirmPending && setShowConfirmModal(false)}>
           <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-2">Cập nhật học phí</h3>
             <p className="mb-4 text-sm text-[var(--muted)]">
@@ -121,21 +132,24 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
               <button
                 type="button"
                 className="btn btn-primary flex-1"
+                disabled={isConfirmPending}
                 onClick={() => handleConfirmUpdate(true)}
               >
-                Có, cập nhật tất cả
+                {confirmChoice === "all" ? "Đang cập nhật..." : "Có, cập nhật tất cả"}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary flex-1"
+                disabled={isConfirmPending}
                 onClick={() => handleConfirmUpdate(false)}
               >
-                Không, chỉ từ nay
+                {confirmChoice === "future" ? "Đang cập nhật..." : "Không, chỉ từ nay"}
               </button>
             </div>
             <button
               type="button"
               className="btn w-full mt-2"
+              disabled={isConfirmPending}
               onClick={() => setShowConfirmModal(false)}
             >
               Hủy

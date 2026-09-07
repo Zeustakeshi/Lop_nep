@@ -4,6 +4,7 @@ import { requireTeacher } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CheckCircle2, Plus } from "lucide-react";
 import { LessonForm } from "@/components/lesson-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function LessonsPage() {
   const teacher = await requireTeacher();
@@ -68,10 +69,10 @@ export default async function LessonsPage() {
             <label>Số tiền</label>
             <input name="billableAmount" inputMode="numeric" />
           </div>
-          <button className="btn btn-primary self-end" type="submit">
+          <SubmitButton className="self-end" pendingText="Đang lưu...">
             Lưu
             <CheckCircle2 size={18} />
-          </button>
+          </SubmitButton>
         </form>
       </section>
       <section className="grid gap-4">

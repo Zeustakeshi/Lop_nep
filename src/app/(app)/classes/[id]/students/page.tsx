@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import { SubmitButton } from "@/components/submit-button";
 import { addParentContact, createClassStudent, createClassStudentsBulk, updateClassStudentStatus } from "@/lib/actions";
 import { requireTeacher } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,9 @@ export default async function ClassStudentsPage({ params }: { params: Promise<{ 
                       <option value="PAUSED">Tạm nghỉ</option>
                       <option value="LEFT">Đã nghỉ</option>
                     </select>
-                    <button className="btn btn-secondary" type="submit">Lưu</button>
+                    <SubmitButton variant="secondary" pendingText="Đang lưu...">
+                      Lưu
+                    </SubmitButton>
                   </form>
                 </div>
                 <p className="mt-2 text-sm">{student.parents.map((p) => `${p.fullName} ${p.phone ?? ""}`).join(", ") || "Chưa có phụ huynh"}</p>
@@ -61,7 +64,9 @@ export default async function ClassStudentsPage({ params }: { params: Promise<{ 
                       <input className="rounded-md border border-[var(--line)] px-2 py-1" name="fullName" placeholder="Tên phụ huynh" />
                       <input className="rounded-md border border-[var(--line)] px-2 py-1" name="phone" placeholder="Số điện thoại" />
                     </div>
-                    <button className="btn btn-secondary w-fit" type="submit">Lưu phụ huynh</button>
+                    <SubmitButton className="w-fit" variant="secondary" pendingText="Đang lưu...">
+                      Lưu phụ huynh
+                    </SubmitButton>
                   </form>
                 </details>
               </div>
@@ -77,7 +82,9 @@ export default async function ClassStudentsPage({ params }: { params: Promise<{ 
             <label>Mỗi học sinh một dòng</label>
             <textarea name="students" required rows={6} placeholder={"Nguyễn Minh Anh | Lớp 9 | 0901234567\nTrần Gia Huy | Lớp 9"} />
           </div>
-          <button className="btn btn-primary w-fit" type="submit">Thêm danh sách</button>
+          <SubmitButton className="w-fit" pendingText="Đang thêm...">
+            Thêm danh sách
+          </SubmitButton>
         </form>
         <details className="card p-4">
           <summary className="font-black">Thêm đầy đủ một học sinh</summary>
@@ -96,7 +103,9 @@ export default async function ClassStudentsPage({ params }: { params: Promise<{ 
             </div>
           </details>
           <div className="flex flex-wrap gap-2">
-            <button className="btn btn-primary" type="submit">Lưu học sinh</button>
+            <SubmitButton pendingText="Đang lưu...">
+              Lưu học sinh
+            </SubmitButton>
             <Link href={`/classes/${klass.id}/schedule`} className="btn btn-secondary">
               Sang lịch học
               <ArrowRight size={18} />
