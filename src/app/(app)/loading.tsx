@@ -58,7 +58,7 @@ const loadingMessages = [
   "Nếp dẻo vừa ăn, số liệu vừa đúng.",
   "Nồi nếp đang nồng, tấm lòng đang gói.",
   "Nếp ngọt vừa lòng, học phí vừa khớp.",
-  "Hấp nếp cho mềm, mở thềm cho thầy cô."
+  "Hấp nếp cho mềm, mở thềm cho thầy cô.",
 ];
 
 function randomMessageIndex(exceptIndex?: number) {

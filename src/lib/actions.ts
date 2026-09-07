@@ -841,16 +841,12 @@ export async function createReport(formData: FormData) {
   const discountAmount = intValue(formData, "discountAmount") ?? 0;
   const surchargeAmount = intValue(formData, "surchargeAmount") ?? 0;
   const manualAmount = intValue(formData, "manualAmount");
-  const perStudentMode = ownedClass.tuition?.type === "GROUP_BY_STUDENT";
-  const studentMultiplier = perStudentMode && !selectedStudent
-    ? ownedClass.students.filter((student) => student.status === "ACTIVE").length
-    : 1;
   const reportLessons = lessons.map((lesson) => {
     const wasLearned = lesson.status === "COMPLETED" || lesson.status === "TRIAL" || lesson.status === "MAKEUP";
     return {
       ...lesson,
       isBillable: wasLearned && lesson.isBillable,
-      billableAmount: wasLearned ? lesson.billableAmount * studentMultiplier : 0
+      billableAmount: wasLearned ? lesson.billableAmount : 0
     };
   });
   const tuition = ownedClass.tuition;
@@ -858,8 +854,7 @@ export async function createReport(formData: FormData) {
     lessons: reportLessons,
     tuition,
     discountAmount,
-    surchargeAmount,
-    manualAmount
+    surchargeAmount
   });
   const totalAmount = totals.totalAmount;
 
@@ -957,26 +952,20 @@ async function syncSingleReport(reportId: string) {
     orderBy: [{ lessonDate: "asc" }, { startTime: "asc" }]
   });
 
-  const perStudentMode = report.class.tuition?.type === "GROUP_BY_STUDENT";
-  const studentMultiplier = perStudentMode && !report.classStudentId
-    ? report.class.students.filter((student) => student.status === "ACTIVE").length
-    : 1;
   const reportLessons = lessons.map((lesson) => {
     const wasLearned = lesson.status === "COMPLETED" || lesson.status === "TRIAL" || lesson.status === "MAKEUP";
     return {
       ...lesson,
       isBillable: wasLearned && lesson.isBillable,
-      billableAmount: wasLearned ? lesson.billableAmount * studentMultiplier : 0
+      billableAmount: wasLearned ? lesson.billableAmount : 0
     };
   });
 
-  const snapshot = report.snapshot as { manualAmount?: number } | null;
   const totals = calculateReportTotals({
     lessons: reportLessons,
     tuition: report.class.tuition,
     discountAmount: report.discountAmount,
-    surchargeAmount: report.surchargeAmount,
-    manualAmount: snapshot?.manualAmount
+    surchargeAmount: report.surchargeAmount
   });
 
   const totalAmount = totals.totalAmount;

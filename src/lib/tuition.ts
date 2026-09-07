@@ -87,7 +87,7 @@ export function calculateReportTotals(params: {
     case "THEO_BUOI":
       // Tổng = sum(customFee hoặc feePerLesson cho các buổi đã học)
       subtotal = billableLessons.reduce(
-        (sum, lesson) => sum + getLessonFee(lesson, params.tuition),
+        (sum, lesson) => sum + getLessonFee(lesson, params.tuition ?? null),
         0
       );
       break;

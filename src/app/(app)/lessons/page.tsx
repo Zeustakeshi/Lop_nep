@@ -14,7 +14,7 @@ export default async function LessonsPage() {
   });
   const lessons = await prisma.lessonSession.findMany({
     where: { class: { teacherId: teacher.id } },
-    include: { class: true },
+    include: { class: { include: { tuition: true } } },
     orderBy: [{ lessonDate: "desc" }, { startTime: "asc" }],
     take: 40,
   });
