@@ -8,7 +8,7 @@ Ung dung Next.js giup giao vien day them quan ly lop hoc, hoc sinh, lich day, bu
 
 - Next.js App Router
 - Clerk authentication
-- PostgreSQL
+- Supabase Postgres
 - Prisma ORM
 - Tailwind CSS
 
@@ -20,25 +20,19 @@ Ung dung Next.js giup giao vien day them quan ly lop hoc, hoc sinh, lich day, bu
 npm install
 ```
 
-2. Tao file `.env.local` tu `.env.example`, sau do dien Clerk keys:
+2. Tao file `.env.local` tu `.env.example`, sau do dien Clerk keys va Supabase database URLs:
 
 ```bash
 cp .env.example .env.local
 ```
 
-3. Chay PostgreSQL bang Docker:
-
-```bash
-docker compose up -d
-```
-
-4. Tao schema database:
+3. Tao schema database tren Supabase:
 
 ```bash
 npx prisma migrate dev --name init
 ```
 
-5. Chay app Next.js:
+4. Chay app Next.js:
 
 ```bash
 npm run dev
