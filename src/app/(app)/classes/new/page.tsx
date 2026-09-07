@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { SubmitButton } from "@/components/submit-button";
 import { createClass } from "@/lib/actions";
 
 export default function NewClassPage() {
@@ -66,10 +67,10 @@ export default function NewClassPage() {
               </div>
             </div>
           </details>
-          <button className="btn btn-primary w-fit" type="submit">
+          <SubmitButton className="w-fit" pendingText="Đang tạo lớp...">
             Tạo lớp và thêm học sinh
             <ArrowRight size={18} />
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

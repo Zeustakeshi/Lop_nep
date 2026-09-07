@@ -10,6 +10,8 @@ export function ReportRecalculateButton({ reportId }: { reportId: string }) {
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
+    if (isPending) return;
+
     const formData = new FormData();
     formData.set("reportId", reportId);
 

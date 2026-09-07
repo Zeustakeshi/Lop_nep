@@ -35,6 +35,8 @@ export function LessonForm({ lesson }: LessonFormProps) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isPending) return;
+
     const formData = new FormData(e.currentTarget);
 
     // Check if billable is being set to "Không"
@@ -51,6 +53,8 @@ export function LessonForm({ lesson }: LessonFormProps) {
   }
 
   function handleConfirmBillableChange() {
+    if (isPending) return;
+
     const formData = new FormData();
     formData.set("lessonId", lesson.id);
     formData.set("status", lesson.status);

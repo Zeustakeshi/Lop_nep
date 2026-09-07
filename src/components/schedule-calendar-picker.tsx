@@ -139,6 +139,8 @@ export function ScheduleCalendarPicker({
   });
 
   function handleSelect(slot: SlotInfo) {
+    if (isPending) return;
+
     const nextSlot = {
       dayOfWeek: slot.start.getDay(),
       startTime: formatTime(slot.start),
@@ -170,7 +172,7 @@ export function ScheduleCalendarPicker({
   }
 
   function handleMoveSchedule({ event, start, end }: EventInteractionArgs<CalendarEvent>) {
-    if (!event.isCurrentClass || event.isPreview) return;
+    if (isPending || !event.isCurrentClass || event.isPreview) return;
 
     const nextStart = start instanceof Date ? start : new Date(start);
     const nextEnd = end instanceof Date ? end : new Date(end);

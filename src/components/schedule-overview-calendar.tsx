@@ -117,6 +117,7 @@ export function ScheduleOverviewCalendar({
   const [creatingSlot, setCreatingSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [message, setMessage] = useState("Kéo buổi học để đổi ngày/giờ, kéo mép dưới để đổi thời lượng.");
   const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   // Modal state for billable warning
   const [showBillableWarning, setShowBillableWarning] = useState(false);
@@ -147,6 +148,8 @@ export function ScheduleOverviewCalendar({
   });
 
   function persistEventTime({ event, start, end }: EventInteractionArgs<CalendarEvent>) {
+    if (isPending) return;
+
     const nextStart = start instanceof Date ? start : new Date(start);
     const nextEnd = end instanceof Date ? end : new Date(end);
     const previousEvents = events;
@@ -173,6 +176,7 @@ export function ScheduleOverviewCalendar({
       current.map((item) => (item.id === event.id ? { ...item, start: nextStart, end: nextEnd } : item))
     );
     setMessage("Đang lưu thay đổi lịch...");
+    setPendingAction("move");
 
     startTransition(async () => {
       try {
@@ -187,12 +191,16 @@ export function ScheduleOverviewCalendar({
       } catch (error) {
         setEvents(previousEvents);
         setMessage(error instanceof Error ? error.message : "Không lưu được thay đổi lịch.");
+      } finally {
+        setPendingAction(null);
       }
     });
   }
 
   function handleSubmitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isPending) return;
+
     const formData = new FormData(event.currentTarget);
 
     // Check if billable is being set to "Không"
@@ -204,6 +212,7 @@ export function ScheduleOverviewCalendar({
     }
 
     setMessage("Đang lưu chỉnh sửa buổi học...");
+    setPendingAction("save");
 
     startTransition(async () => {
       try {
@@ -215,12 +224,14 @@ export function ScheduleOverviewCalendar({
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Không lưu được chỉnh sửa buổi học.");
+      } finally {
+        setPendingAction(null);
       }
     });
   }
 
   function handleConfirmBillableChange() {
-    if (!editingEvent || !pendingBillableChange) return;
+    if (!editingEvent || !pendingBillableChange || isPending) return;
 
     setShowBillableWarning(false);
 
@@ -234,6 +245,7 @@ export function ScheduleOverviewCalendar({
     formData.set("billableAmount", "0");
 
     setMessage("Đang lưu chỉnh sửa buổi học...");
+    setPendingAction("confirm-billable");
 
     startTransition(async () => {
       try {
@@ -244,14 +256,19 @@ export function ScheduleOverviewCalendar({
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Không lưu được chỉnh sửa buổi học.");
+      } finally {
+        setPendingAction(null);
       }
     });
   }
 
   function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isPending) return;
+
     const formData = new FormData(event.currentTarget);
     setMessage("Đang tạo buổi học...");
+    setPendingAction("create");
     startTransition(async () => {
       try {
         await createLesson(formData);
@@ -260,13 +277,16 @@ export function ScheduleOverviewCalendar({
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Không tạo được buổi học.");
+      } finally {
+        setPendingAction(null);
       }
     });
   }
 
   function handleQuickStatus(status: string) {
-    if (!editingEvent) return;
+    if (!editingEvent || isPending) return;
     setMessage("Đang cập nhật buổi học...");
+    setPendingAction(`status:${status}`);
     startTransition(async () => {
       try {
         await quickUpdateLessonStatus({ lessonId: editingEvent.id, status });
@@ -275,14 +295,17 @@ export function ScheduleOverviewCalendar({
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Không cập nhật được buổi học.");
+      } finally {
+        setPendingAction(null);
       }
     });
   }
 
   function handleDelete() {
-    if (!editingEvent) return;
+    if (!editingEvent || isPending) return;
     if (!window.confirm(`Xóa vĩnh viễn buổi học ${editingEvent.title}? Thao tác này không thể hoàn tác.`)) return;
     setMessage("Đang xóa buổi học...");
+    setPendingAction("delete");
     startTransition(async () => {
       try {
         await deleteLesson(editingEvent.id);
@@ -291,6 +314,8 @@ export function ScheduleOverviewCalendar({
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Không xóa được buổi học.");
+      } finally {
+        setPendingAction(null);
       }
     });
   }
@@ -357,12 +382,12 @@ export function ScheduleOverviewCalendar({
       />
       </div>
       {creatingSlot ? (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setCreatingSlot(null)}>
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => !isPending && setCreatingSlot(null)}>
           <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="lesson-create-title" onMouseDown={(event) => event.stopPropagation()}>
             <form onSubmit={handleCreate} className="grid gap-4">
               <div className="modal-heading">
                 <div><p>Buổi phát sinh</p><h2 id="lesson-create-title">Tạo nhanh trên lịch</h2></div>
-                <button className="icon-button" type="button" onClick={() => setCreatingSlot(null)} aria-label="Đóng">x</button>
+                <button className="icon-button" type="button" disabled={isPending} onClick={() => setCreatingSlot(null)} aria-label="Đóng">x</button>
               </div>
               <div className="field"><label>Lớp</label><select name="classId" required>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <div className="grid-3">
@@ -372,15 +397,15 @@ export function ScheduleOverviewCalendar({
               </div>
               <input name="status" type="hidden" value="PLANNED" />
               <div className="modal-actions">
-                <button className="btn btn-secondary" type="button" onClick={() => setCreatingSlot(null)}>Hủy</button>
-                <button className="btn btn-primary" type="submit" disabled={isPending}>{isPending ? "Đang tạo" : "Tạo buổi học"}</button>
+                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={() => setCreatingSlot(null)}>Hủy</button>
+                <button className="btn btn-primary" type="submit" disabled={isPending}>{pendingAction === "create" ? "Đang tạo..." : "Tạo buổi học"}</button>
               </div>
             </form>
           </div>
         </div>
       ) : null}
       {editingEvent ? (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setEditingEvent(null)}>
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => !isPending && setEditingEvent(null)}>
           <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="lesson-edit-title" onMouseDown={(event) => event.stopPropagation()}>
             <form onSubmit={handleSubmitEdit} className="grid gap-4">
               <div className="modal-heading">
@@ -388,13 +413,13 @@ export function ScheduleOverviewCalendar({
                   <p>Chỉnh sửa buổi học</p>
                   <h2 id="lesson-edit-title">{editingEvent.title}</h2>
                 </div>
-                <button className="icon-button" type="button" onClick={() => setEditingEvent(null)} aria-label="Đóng">x</button>
+                <button className="icon-button" type="button" disabled={isPending} onClick={() => setEditingEvent(null)} aria-label="Đóng">x</button>
               </div>
               <input name="lessonId" type="hidden" value={editingEvent.id} />
               <div className="flex flex-wrap gap-2">
-                <button className="btn btn-primary" type="button" disabled={isPending} onClick={() => handleQuickStatus("COMPLETED")}>Đã dạy</button>
-                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={() => handleQuickStatus("STUDENT_ABSENT")}>Học sinh nghỉ</button>
-                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={() => handleQuickStatus("CANCELLED")}>Hủy buổi</button>
+                <button className="btn btn-primary" type="button" disabled={isPending} onClick={() => handleQuickStatus("COMPLETED")}>{pendingAction === "status:COMPLETED" ? "Đang lưu..." : "Đã dạy"}</button>
+                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={() => handleQuickStatus("STUDENT_ABSENT")}>{pendingAction === "status:STUDENT_ABSENT" ? "Đang lưu..." : "Học sinh nghỉ"}</button>
+                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={() => handleQuickStatus("CANCELLED")}>{pendingAction === "status:CANCELLED" ? "Đang lưu..." : "Hủy buổi"}</button>
               </div>
               <div className="grid-3">
                 <div className="field"><label>Ngày</label><input name="lessonDate" type="date" defaultValue={dateKey(editingEvent.start)} required /></div>
@@ -434,9 +459,9 @@ export function ScheduleOverviewCalendar({
                 <div className="field"><label>Ghi chú cho phụ huynh</label><textarea name="parentNote" defaultValue={editingEvent.parentNote ?? ""} /></div>
               </div>
               <div className="modal-actions">
-                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={handleDelete}>Xóa buổi</button>
-                <button className="btn btn-secondary" type="button" onClick={() => setEditingEvent(null)}>Đóng</button>
-                <button className="btn btn-primary" type="submit" disabled={isPending}>{isPending ? "Đang lưu" : "Lưu thay đổi"}</button>
+                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={handleDelete}>{pendingAction === "delete" ? "Đang xóa..." : "Xóa buổi"}</button>
+                <button className="btn btn-secondary" type="button" disabled={isPending} onClick={() => setEditingEvent(null)}>Đóng</button>
+                <button className="btn btn-primary" type="submit" disabled={isPending}>{pendingAction === "save" ? "Đang lưu..." : "Lưu thay đổi"}</button>
               </div>
             </form>
           </div>

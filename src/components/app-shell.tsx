@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { useState } from "react";
 import { Brand } from "@/components/brand";
@@ -25,6 +26,7 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const pathname = usePathname();
 
   return (
     <div className="min-h-screen">
@@ -60,13 +62,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           {nav.map((item) => {
             const Icon = item.icon;
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-h-10 shrink-0 items-center rounded-md px-3 text-sm font-bold text-[var(--muted)] hover:bg-[var(--secondary)] ${
+                className={`app-nav-link flex min-h-10 shrink-0 items-center rounded-md px-3 text-sm font-bold ${
+                  isActive ? "app-nav-link-active" : ""
+                } ${
                   sidebarOpen ? "gap-2" : "justify-center"
                 }`}
+                aria-current={isActive ? "page" : undefined}
                 aria-label={!sidebarOpen ? item.label : undefined}
                 title={!sidebarOpen ? item.label : undefined}
               >
