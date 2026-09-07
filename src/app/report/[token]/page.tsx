@@ -1,4 +1,21 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
+import {
+  BookOpenCheck,
+  CalendarDays,
+  Check,
+  ClipboardList,
+  Copy,
+  CreditCard,
+  Database,
+  GraduationCap,
+  Info,
+  Landmark,
+  Phone,
+  Timer,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import { PrintButton } from "@/components/print-button";
 import { StatusBadge } from "@/components/status-badge";
 import { prisma } from "@/lib/prisma";
@@ -50,6 +67,17 @@ function formatAccountNumber(num: string): string {
   const cleaned = num.replace(/\s/g, "");
   if (cleaned.length <= 4) return cleaned;
   return `${cleaned.slice(0, 4)} ${cleaned.slice(4)}`;
+}
+
+function formatLessonRange(lessons: ReportSnapshot["lessons"]) {
+  const sortedDates = (lessons ?? [])
+    .map((lesson) => lesson.lessonDate)
+    .filter(Boolean)
+    .sort();
+
+  if (sortedDates.length === 0) return null;
+
+  return `${formatDate(sortedDates[0])} - ${formatDate(sortedDates[sortedDates.length - 1])}`;
 }
 
 export default async function PublicReportPage({
@@ -123,6 +151,7 @@ export default async function PublicReportPage({
     snapshot.students?.map((student) => student.fullName).join(", ") ||
     "Học viên";
   const teacherContact = currentTeacherInfo.phone ?? currentTeacherInfo.email;
+  const lessonRange = formatLessonRange(snapshot.lessons);
 
   // Check if bank info is complete
   const hasBankInfo = !!(
@@ -151,19 +180,26 @@ export default async function PublicReportPage({
   }
 
   return (
-    <main className="report-page container max-w-4xl py-6">
+    <main className="report-page container max-w-5xl py-6">
       <div className="report-toolbar no-print">
         <p>Phiếu học phí đã sẵn sàng để lưu hoặc in khổ A4</p>
         <PrintButton />
       </div>
 
       <article className="report-sheet">
-        {/* Header */}
         <header className="report-header">
           <div className="report-brand">
-            <span className="report-brand-mark">MM</span>
+            <span className="report-brand-mark">
+              <Image
+                src="/lop-nep-logo.png"
+                alt="Lớp Nếp"
+                width={48}
+                height={48}
+                priority
+              />
+            </span>
             <div>
-              <strong>MENTOR MONEY</strong>
+              <strong>Lớp Nếp</strong>
               <span>Báo cáo học tập &amp; học phí</span>
             </div>
           </div>
@@ -173,67 +209,99 @@ export default async function PublicReportPage({
           </div>
         </header>
 
-        {/* Title Section */}
         <section className="report-title-section">
           <div className="report-title-left">
-            <p className="report-eyebrow">Báo cáo học phí</p>
+            <p className="report-eyebrow">
+              <BookOpenCheck size={15} />
+              Phiếu học phí
+            </p>
             <h1>{formatReportMonth(report.reportMonth)}</h1>
             <p className="report-class-name">
-              {snapshot.class?.name} <span>•</span> {snapshot.class?.subject}
+              {snapshot.class?.name ?? "Lớp học"} <span>•</span>{" "}
+              {snapshot.class?.subject ?? "Môn học"}
             </p>
+            {lessonRange && (
+              <p className="report-date-range">
+                <CalendarDays size={15} />
+                Thời gian: {lessonRange}
+              </p>
+            )}
           </div>
-          <div className="report-title-right">
-            <div className="report-info-card">
+
+          <div className="report-info-card">
+            <div className="report-info-row">
+              <span className="report-info-label">
+                <UserRound size={17} />
+                Học viên
+              </span>
+              <span className="report-info-value">{studentNames}</span>
+            </div>
+            <div className="report-info-row">
+              <span className="report-info-label">
+                <GraduationCap size={17} />
+                Giáo viên
+              </span>
+              <span className="report-info-value">
+                {currentTeacherInfo.name ?? "-"}
+              </span>
+            </div>
+            {teacherContact && (
               <div className="report-info-row">
-                <span className="report-info-label">Học viên</span>
-                <span className="report-info-value">{studentNames}</span>
-              </div>
-              <div className="report-info-row">
-                <span className="report-info-label">Giáo viên</span>
-                <span className="report-info-value">
-                  {currentTeacherInfo.name ?? "-"}
+                <span className="report-info-label">
+                  <Phone size={17} />
+                  Liên hệ
                 </span>
+                <span className="report-info-value">{teacherContact}</span>
               </div>
-              {teacherContact && (
-                <div className="report-info-row">
-                  <span className="report-info-label">Liên hệ</span>
-                  <span className="report-info-value">{teacherContact}</span>
-                </div>
-              )}
+            )}
+          </div>
+        </section>
+
+        <section className="report-summary" aria-label="Tổng quan học phí">
+          <div className="report-stat">
+            <span className="report-stat-icon">
+              <Check size={30} />
+            </span>
+            <div>
+              <span className="report-stat-label">Số buổi đã học</span>
+              <strong className="report-stat-value">
+                {learnedLessons.length}
+              </strong>
+              <small className="report-stat-sub">buổi hoàn thành</small>
+            </div>
+          </div>
+          <div className="report-stat">
+            <span className="report-stat-icon report-stat-icon-blue">
+              <ClipboardList size={28} />
+            </span>
+            <div>
+              <span className="report-stat-label">Số buổi tính phí</span>
+              <strong className="report-stat-value">
+                {billableLessons.length}
+              </strong>
+              <small className="report-stat-sub">theo kỳ báo cáo</small>
+            </div>
+          </div>
+          <div className="report-stat report-stat-highlight">
+            <span className="report-stat-icon report-stat-icon-light">
+              <Wallet size={30} />
+            </span>
+            <div>
+              <span className="report-stat-label">Tổng thanh toán</span>
+              <strong className="report-stat-value">
+                {formatMoney(report.totalAmount)}
+              </strong>
+              <small className="report-stat-sub">Số tiền cần thanh toán</small>
             </div>
           </div>
         </section>
 
-        {/* Summary Stats */}
-        <section className="report-summary" aria-label="Tổng quan học phí">
-          <div className="report-stat">
-            <span className="report-stat-label">Buổi đã học</span>
-            <strong className="report-stat-value">
-              {learnedLessons.length}
-            </strong>
-            <small className="report-stat-sub">buổi hoàn thành</small>
-          </div>
-          <div className="report-stat">
-            <span className="report-stat-label">Buổi tính phí</span>
-            <strong className="report-stat-value">
-              {billableLessons.length}
-            </strong>
-            <small className="report-stat-sub">theo kỳ báo cáo</small>
-          </div>
-          <div className="report-stat report-stat-highlight">
-            <span className="report-stat-label">Tổng thanh toán</span>
-            <strong className="report-stat-value">
-              {formatMoney(report.totalAmount)}
-            </strong>
-            <small className="report-stat-sub">Số tiền cần thanh toán</small>
-          </div>
-        </section>
-
-        {/* Lessons Table */}
         <section className="report-section">
           <div className="report-section-header">
             <div>
-              <span className="report-eyebrow">Chi tiết</span>
+              <span className="report-section-icon">
+                <ClipboardList size={18} />
+              </span>
               <h2>Danh sách buổi học</h2>
             </div>
             <p className="report-section-count">
@@ -245,11 +313,26 @@ export default async function PublicReportPage({
               <thead>
                 <tr>
                   <th className="col-index">STT</th>
-                  <th className="col-date">Ngày học</th>
-                  <th className="col-time">Thời gian</th>
-                  <th className="col-status">Trạng thái</th>
-                  <th className="col-content">Nội dung buổi học</th>
-                  <th className="col-fee">Học phí</th>
+                  <th className="col-date">
+                    <CalendarDays size={15} />
+                    Ngày học
+                  </th>
+                  <th className="col-time">
+                    <Timer size={15} />
+                    Thời gian
+                  </th>
+                  <th className="col-status">
+                    <Check size={15} />
+                    Trạng thái
+                  </th>
+                  <th className="col-content">
+                    <ClipboardList size={15} />
+                    Nội dung buổi học
+                  </th>
+                  <th className="col-fee">
+                    <Database size={15} />
+                    Học phí
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -296,29 +379,25 @@ export default async function PublicReportPage({
           </div>
         </section>
 
-        {/* Payment Section */}
         <section className="report-payment-section">
           <div className="report-payment-header">
-            <span className="report-eyebrow">Thông tin thanh toán</span>
-            <h2>Chuyển khoản ngân hàng</h2>
+            <span className="report-section-icon">
+              <UserRound size={18} />
+            </span>
+            <div>
+              <h2>Thông tin thanh toán</h2>
+              <p>Vui lòng thanh toán học phí theo thông tin bên dưới</p>
+            </div>
           </div>
 
           {hasBankInfo ? (
             <div className="report-payment-content">
               <div className="report-payment-details">
-                <div className="report-bank-name">
-                  <svg
-                    className="report-bank-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />
-                  </svg>
-                  <span>{getBankShortName(currentTeacherInfo.bankName!)}</span>
-                </div>
-                <div className="report-bank-info">
+                <div className="report-bank-card">
+                  <div className="report-bank-name">
+                    <Landmark className="report-bank-icon" size={34} />
+                    <span>{getBankShortName(currentTeacherInfo.bankName!)}</span>
+                  </div>
                   <div className="report-bank-row">
                     <span className="report-bank-label">Chủ tài khoản</span>
                     <span className="report-bank-value">
@@ -333,15 +412,21 @@ export default async function PublicReportPage({
                       )}
                     </span>
                   </div>
+                  <span className="report-copy-icon no-print" aria-hidden="true">
+                    <Copy size={17} />
+                  </span>
                 </div>
                 {report.paymentNote && (
                   <div className="report-payment-note">
-                    <span className="report-note-label">
-                      Nội dung chuyển khoản
-                    </span>
-                    <span className="report-note-value">
-                      {report.paymentNote}
-                    </span>
+                    <div>
+                      <span className="report-note-label">
+                        <Info size={18} />
+                        Nội dung chuyển khoản
+                      </span>
+                      <span className="report-note-value">
+                        {report.paymentNote}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -374,14 +459,7 @@ export default async function PublicReportPage({
           ) : (
             <div className="report-payment-contact">
               <div className="report-contact-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                </svg>
+                <CreditCard size={28} />
               </div>
               <div className="report-contact-info">
                 <h3>Vui lòng liên hệ giáo viên để thanh toán</h3>
@@ -399,11 +477,7 @@ export default async function PublicReportPage({
           )}
         </section>
 
-        {/* Footer */}
-        <footer className="report-footer">
-          <p>Cảm ơn phụ huynh và học viên đã tin tưởng đồng hành.</p>
-          <span>Báo cáo được tạo bởi Lớp Nếp</span>
-        </footer>
+        <footer className="report-footer" aria-label="Lớp Nếp" />
       </article>
     </main>
   );
