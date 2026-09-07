@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, WalletCards } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { TuitionConfigForm } from "@/components/tuition-config-form";
 import { requireTeacher } from "@/lib/auth";
@@ -40,7 +40,6 @@ export default async function ClassTuitionPage({ params }: { params: Promise<{ i
         <div className="card p-4">
           <div className="section-heading">
             <h2>Hiện tại</h2>
-            <WalletCards size={18} />
           </div>
           <p className="text-sm text-[var(--muted)]">Kiểu tính phí</p>
           <strong>{klass.tuition?.type ?? "Chưa cấu hình"}</strong>

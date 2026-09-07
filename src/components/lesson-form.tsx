@@ -133,8 +133,8 @@ export function LessonForm({ lesson }: LessonFormProps) {
                   placeholder="VD: 200000"
                 />
                 {lesson.customFee !== null && lesson.customFee !== undefined && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    ✏️ Đã tùy chỉnh (mặc định: {formatMoney(lesson.class.tuition?.feePerLesson ?? 0)})
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Đã tùy chỉnh (mặc định: {formatMoney(lesson.class.tuition?.feePerLesson ?? 0)})
                   </p>
                 )}
               </>
@@ -152,9 +152,9 @@ export function LessonForm({ lesson }: LessonFormProps) {
 
         {/* THEO_THANG: Hiển thị thông báo không tính theo buổi */}
         {lesson.class.tuition?.type === "THEO_THANG" && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-            <p>💡 Chế độ <strong>THEO_THANG</strong>: Tiền cố định theo tháng, không tính theo từng buổi.</p>
-            <p className="text-xs mt-1">Nghỉ buổi vẫn tính đủ tiền tháng.</p>
+          <div className="tuition-helper-panel">
+            <p><strong>Chế độ THEO_THANG:</strong> Tiền cố định theo tháng, không tính theo từng buổi.</p>
+            <p className="text-xs">Nghỉ buổi vẫn tính đủ tiền tháng.</p>
           </div>
         )}
 

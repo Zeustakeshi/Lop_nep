@@ -96,9 +96,9 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
         <div className="field">
           <label>Chế độ tính tiền</label>
           <select name="tuitionType" value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="THEO_BUOI">📅 Theo buổi - Mỗi buổi dạy tính tiền buổi đó</option>
-            <option value="THEO_THANG">📆 Theo tháng - Tiền cố định mỗi tháng</option>
-            <option value="THEO_GOI">📦 Theo gói - Coming soon</option>
+            <option value="THEO_BUOI">Theo buổi - Mỗi buổi dạy tính tiền buổi đó</option>
+            <option value="THEO_THANG">Theo tháng - Tiền cố định mỗi tháng</option>
+            <option value="THEO_GOI">Theo gói - Coming soon</option>
           </select>
         </div>
 
@@ -132,9 +132,9 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
                 required
               />
             </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-              <p className="font-medium">💡 Cách tính này hoạt động như thế nào:</p>
-              <ul className="list-disc list-inside mt-1 space-y-1">
+            <div className="tuition-helper-panel">
+              <p className="font-bold text-[var(--foreground)]">Cách tính này hoạt động như thế nào</p>
+              <ul className="list-disc pl-5 text-[var(--muted)]">
                 <li>Số tiền sẽ <strong>cố định mỗi tháng</strong>, không phụ thuộc vào số buổi</li>
                 <li>Bạn có thể thêm buổi học bổ sung trong tháng</li>
                 <li>Tiền vẫn giữ nguyên - không tăng khi thêm buổi</li>
@@ -145,8 +145,8 @@ export function TuitionConfigForm({ classId, tuition, completedLessonsCount }: {
 
         {/* THEO_GOI: Coming soon */}
         {isTheoGoi && (
-          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center text-gray-500">
-            <p className="text-lg mb-1">🚧 Tính năng đang được phát triển</p>
+          <div className="tuition-helper-panel text-center">
+            <p className="mb-1 font-bold text-[var(--foreground)]">Tính năng đang được phát triển</p>
             <p className="text-sm">Chế độ "Theo gói" sẽ cho phép bạn bán các gói buổi học cho phụ huynh.</p>
           </div>
         )}
