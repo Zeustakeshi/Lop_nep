@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { SubmitButton } from "@/components/submit-button";
 import { createReport } from "@/lib/actions";
 import { requireTeacher } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -52,7 +53,9 @@ export default async function NewClassReportPage({ params }: { params: Promise<{
             <div className="field"><label>Ghi chú thanh toán</label><textarea name="paymentNote" defaultValue={teacher.defaultPaymentNote ?? ""} /></div>
           </div>
         </details>
-        <button className="btn btn-primary w-fit" type="submit">Tạo báo cáo</button>
+        <SubmitButton className="w-fit" pendingText="Đang tạo...">
+          Tạo báo cáo
+        </SubmitButton>
       </form>
     </>
   );

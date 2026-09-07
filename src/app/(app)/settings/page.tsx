@@ -3,6 +3,7 @@ import { updateSettings } from "@/lib/actions";
 import { requireTeacher } from "@/lib/auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { BankSettingsForm } from "@/components/bank-settings-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function SettingsPage() {
   const teacher = await requireTeacher();
@@ -37,7 +38,9 @@ export default async function SettingsPage() {
             <div className="field"><label>Ghi chú cuối báo cáo</label><textarea name="defaultReportFooter" defaultValue={teacher.defaultReportFooter ?? ""} /></div>
           </div>
         </section>
-        <button className="btn btn-primary w-fit" type="submit">Lưu cài đặt</button>
+        <SubmitButton className="w-fit" pendingText="Đang lưu...">
+          Lưu cài đặt
+        </SubmitButton>
       </form>
     </>
   );

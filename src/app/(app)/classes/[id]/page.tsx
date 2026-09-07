@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import { SubmitButton } from "@/components/submit-button";
 import { generateLessonsForMonth, updateClassStatus } from "@/lib/actions";
 import { requireTeacher } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -83,7 +84,9 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
           <form action={generateLessonsForMonth} className="flex gap-2">
             <input name="classId" type="hidden" value={klass.id} />
             <input className="rounded-md border border-[var(--line)] px-3" name="month" type="month" defaultValue={currentMonthKey()} />
-            <button className="btn btn-secondary" type="submit">Sinh lịch tháng</button>
+            <SubmitButton variant="secondary" pendingText="Đang sinh lịch...">
+              Sinh lịch tháng
+            </SubmitButton>
           </form>
         </div>
         <table className="table">
@@ -129,7 +132,9 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         <select className="rounded-md border border-[var(--line)] px-3" name="status" defaultValue={klass.status}>
           <option value="ACTIVE">Đang học</option><option value="PAUSED">Tạm dừng</option><option value="ENDED">Đã kết thúc</option>
         </select>
-        <button className="btn btn-secondary" type="submit">Cập nhật trạng thái</button>
+        <SubmitButton variant="secondary" pendingText="Đang cập nhật...">
+          Cập nhật trạng thái
+        </SubmitButton>
       </form>
     </>
   );
